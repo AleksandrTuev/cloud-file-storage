@@ -1,0 +1,4 @@
+databaseChangeLog:
+  - include:
+      file: v.1.0.0/2026-06-08-001-create-table-users.yaml
+      relativeToChangelogFile: true
