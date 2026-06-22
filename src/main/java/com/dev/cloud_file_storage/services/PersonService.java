@@ -1,8 +1,10 @@
 package com.dev.cloud_file_storage.services;
 
+import com.dev.cloud_file_storage.exception.UsernameAlreadyExsistException;
 import com.dev.cloud_file_storage.models.Person;
 import com.dev.cloud_file_storage.repositories.PeopleRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -13,14 +15,11 @@ public class PersonService {
     private final PeopleRepository peopleRepository;
 
     public Person create(Person person) {
-//        try {
+        try {
             person.setPassword(passwordEncoder.encode(person.getPassword()));
             return peopleRepository.save(person);
-//        } catch (Exception e) {
-//
-//        //todo обработать валидацию
-//        //todo обработать случай, когда в БД имеется такой login
-//
-//        }
+        } catch (DataIntegrityViolationException e) {
+            throw new UsernameAlreadyExsistException("User already exists");
+        }
     }
 }
