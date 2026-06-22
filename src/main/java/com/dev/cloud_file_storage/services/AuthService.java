@@ -27,8 +27,8 @@ public class AuthService {
     }
 
     public PersonResponseDto login(PersonDto personDto) {
-        authenticate(personDto.getUsername(), personDto.getPassword());
-        return new PersonResponseDto(personDto.getUsername());
+        authenticate(personDto.username(), personDto.password());
+        return new PersonResponseDto(personDto.username());
     }
 
     private void authenticate(String username, String password) {
