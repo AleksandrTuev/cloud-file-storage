@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: 'postgres:16.1-alpine'
+    image: postgres:16.1-alpine
     environment:
       - 'POSTGRES_DB=postgres'
       - 'POSTGRES_PASSWORD=13579'
@@ -8,6 +8,12 @@ services:
     ports:
       - '5432:5432'
   redis:
-    image: 'redis:8.6.4-alpine'
+    image: redis:8.6.4-alpine
     ports:
       - '6379:6379'
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+volumes:
+  redis_data:
