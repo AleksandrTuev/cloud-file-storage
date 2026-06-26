@@ -31,5 +31,4 @@ class TestcontainersConfiguration {
 				.bindToApplicationContext(context)
 				.build();
 	}
-
 }
