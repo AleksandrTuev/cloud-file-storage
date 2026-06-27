@@ -57,6 +57,7 @@ class CloudFileStorageApplicationTests {
 	@Sql(scripts = "/sql/create-test-user.sql", executionPhase = Sql.ExecutionPhase.BEFORE_TEST_METHOD)
 	@Sql(scripts = "/sql/cleanup-test-user.sql", executionPhase = Sql.ExecutionPhase.AFTER_TEST_METHOD)
 	void shouldReturn400WhenSigningInWithInvalidCredentials() {
+		//ловит сначала BadCredentialsException (status 401), а после ConstraintViolationException (status 400)
 		PersonDto person = new PersonDto("Vl", "p1");
 
 		webClient.post()
