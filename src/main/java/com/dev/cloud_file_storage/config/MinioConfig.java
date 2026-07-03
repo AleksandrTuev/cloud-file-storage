@@ -1,8 +1,11 @@
 package com.dev.cloud_file_storage.config;
 
+import com.dev.cloud_file_storage.exception.InitBucketException;
+import io.minio.BucketExistsArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.errors.*;
+import jakarta.annotation.PostConstruct;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -15,17 +18,26 @@ public class MinioConfig {
 
     @Bean
     public MinioClient minioClient() {
-        return MinioClient.builder()
+        MinioClient minioClient = MinioClient.builder()
                 .endpoint("http://localhost:9000")
                 .credentials("minioadmin", "minioadmin")
                 .build();
-    }
 
-    @Bean
-    public void mainBucket() throws ServerException, InsufficientDataException,
-            ErrorResponseException, IOException, NoSuchAlgorithmException, InvalidKeyException,
-            InvalidResponseException, XmlParserException, InternalException {
-        minioClient().makeBucket(MakeBucketArgs.builder().bucket("user-files").build());
+        String bucketName = "user-files";
+
+        try {
+            boolean found = minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build());
+
+            if (!found) {
+                minioClient.makeBucket(MakeBucketArgs.builder().bucket(bucketName).build());
+            }
+        } catch (ServerException | InsufficientDataException | ErrorResponseException | IOException |
+                 NoSuchAlgorithmException | InvalidKeyException | InvalidResponseException | XmlParserException |
+                 InternalException e) {
+            throw new InitBucketException("failed to initialize main bucket", e);
+        }
+
+        return minioClient;
     }
 
 //    @Bean
