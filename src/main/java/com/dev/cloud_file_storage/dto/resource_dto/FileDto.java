@@ -7,9 +7,9 @@ import lombok.*;
 @ToString
 @NoArgsConstructor
 public class FileDto extends DirectoryDto{
-    private int size;
+    private long size;
 
-    public FileDto(String path, String name, int size, ResourceType type) {
+    public FileDto(String path, String name, long size, ResourceType type) {
         super(path, name, type);
         this.size = size;
     }
