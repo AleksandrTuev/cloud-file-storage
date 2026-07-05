@@ -25,9 +25,6 @@ public class DirectoryController {
             NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException,
             InternalException {
 
-        if (path.isEmpty()) {
-            path = ResourceUtils.getNameUserFolder(path);
-        }
         return ResponseEntity.status(HttpStatus.OK).body(directoryService.getFolderInfo(path));
     }
 
