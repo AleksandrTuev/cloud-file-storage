@@ -1,7 +1,6 @@
 package com.dev.cloud_file_storage.services;
 
-import com.dev.cloud_file_storage.dto.resource_dto.DirectoryDto;
-import com.dev.cloud_file_storage.dto.resource_dto.ResourceDto;
+import com.dev.cloud_file_storage.dto.ResourceDto;
 import com.dev.cloud_file_storage.enums.ResourceType;
 import com.dev.cloud_file_storage.utils.ProjectConstants;
 import com.dev.cloud_file_storage.utils.ResourceUtils;
@@ -28,7 +27,7 @@ public class DirectoryService {
         this.minioClient = minioClient;
     }
 
-    public List<ResourceDto> getFolderInfo(String path) throws ServerException, InsufficientDataException,
+    public List<ResourceDto> getInfo(String path) throws ServerException, InsufficientDataException,
             ErrorResponseException, IOException, NoSuchAlgorithmException, InvalidKeyException,
             InvalidResponseException, XmlParserException, InternalException {
 
@@ -48,9 +47,7 @@ public class DirectoryService {
             if (parentPath.equals(item.objectName())) {
                 continue;
             }
-
             list.add(ResourceUtils.getResourceFromItem(item));
-
         }
         return list;
     }
@@ -58,7 +55,6 @@ public class DirectoryService {
     public ResourceDto createFolder(String path) throws ServerException, InsufficientDataException,
             ErrorResponseException, IOException, NoSuchAlgorithmException, InvalidKeyException,
             InvalidResponseException, XmlParserException, InternalException {
-
 
         path = ResourceUtils.getPathToFolderUser(path);
         minioClient.putObject(PutObjectArgs
@@ -75,14 +71,5 @@ public class DirectoryService {
                 .name(ResourceUtils.getResourceName(path))
                 .type(ResourceType.DIRECTORY)
                 .build();
-//        return new DirectoryDto(
-//                ResourceUtils.getParentPath(path),
-//                ResourceUtils.getResourceName(path),
-//                ResourceType.DIRECTORY
-//        );
     }
-
-//    public String getPathToFolderUser(String path) {
-//        return ResourceUtils.getNameUserFolder(path) + path;
-//    }
 }

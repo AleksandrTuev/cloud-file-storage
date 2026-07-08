@@ -1,7 +1,6 @@
 package com.dev.cloud_file_storage.controllers;
 
 import com.dev.cloud_file_storage.services.DirectoryService;
-import com.dev.cloud_file_storage.utils.ResourceUtils;
 import io.minio.errors.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -25,7 +24,7 @@ public class DirectoryController {
             NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException,
             InternalException {
 
-        return ResponseEntity.status(HttpStatus.OK).body(directoryService.getFolderInfo(path));
+        return ResponseEntity.status(HttpStatus.OK).body(directoryService.getInfo(path));
     }
 
     @PostMapping
