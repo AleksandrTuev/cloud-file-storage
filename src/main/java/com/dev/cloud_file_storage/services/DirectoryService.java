@@ -28,9 +28,12 @@ public class DirectoryService {
         path = ResourceUtils.getPathToFolderUser(path);
         String parentPath = path;
         List<ResourceDto> list = new ArrayList<>();
+        boolean found = false;
+
         for (Result<Item> result : minioService.getList(path)) {
             Item item = result.get();
             if (parentPath.equals(item.objectName())) {
+                found = true;
                 continue;
             }
 
@@ -43,7 +46,7 @@ public class DirectoryService {
             }
         }
 
-        if (list.isEmpty()) {
+        if (list.isEmpty() && !found) {
             throw new ResourceNotFoundException("Resource not exists");
         }
 
