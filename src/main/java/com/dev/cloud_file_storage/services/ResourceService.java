@@ -183,7 +183,7 @@ public class ResourceService {
         String newParentPath = ResourceUtils.getParentPath(to);
         String oldNameResource = ResourceUtils.getResourceName(from);
         String newNameResource = ResourceUtils.getResourceName(to);
-        ResourceDto resourceDto;
+        ResourceDto resourceDto = new ResourceDto();
 
         if (!oldNameResource.equals(newNameResource)) {
             to = ResourceUtils.deleteNameUserFolder(to);
@@ -200,8 +200,37 @@ public class ResourceService {
             remove(from);
             return resourceDto;
         } else {
+            Iterable<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder()
+                    .bucket(ProjectConstants.NAME_MAIN_BUCKET)
+                    .prefix(from)
+                    .delimiter("/")
+                    .build());
 
-            return new ResourceDto(); //todo заглушка
+            for (Result<Item> result : results) {
+                Item item = result.get();
+
+                if (from.equals(item.objectName())) {
+                    minioClient.copyObject(CopyObjectArgs.builder()
+                            .bucket(ProjectConstants.NAME_MAIN_BUCKET)
+                            .object(ResourceUtils.getNameUserFolder() + to)
+                            .source(
+                                    CopySource.builder()
+                                            .bucket(ProjectConstants.NAME_MAIN_BUCKET)
+                                            .object(from)
+                                            .build()
+                            ).build());
+
+                    remove(from);
+                    resourceDto = ResourceDto.builder()
+                            .path(newParentPath)
+                            .name(newNameResource)
+                            .size(item.size())
+                            .type(ResourceType.FILE)
+                            .build();
+                }
+            }
+
+        return resourceDto;
         }
     }
 
