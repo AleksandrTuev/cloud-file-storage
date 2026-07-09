@@ -49,7 +49,6 @@ public class DirectoryService {
         if (list.isEmpty() && !found) {
             throw new ResourceNotFoundException("Resource not exists");
         }
-
         return list;
     }
 
