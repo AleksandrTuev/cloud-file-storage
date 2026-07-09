@@ -29,11 +29,7 @@ import java.util.zip.ZipOutputStream;
 public class ResourceService {
     private final MinioClient minioClient;
     private final DirectoryService directoryService;
-
-    public ResourceService(MinioClient minioClient, DirectoryService directoryService) {
-        this.minioClient = minioClient;
-        this.directoryService = directoryService;
-    }
+    private final MinioService minioService;
 
     public ResourceDto getInfo(String path) throws ServerException, InsufficientDataException,
             ErrorResponseException, IOException, NoSuchAlgorithmException, InvalidKeyException,
@@ -51,12 +47,7 @@ public class ResourceService {
             ErrorResponseException, IOException, NoSuchAlgorithmException, InvalidKeyException,
             InvalidResponseException, XmlParserException, InternalException {
         List<String> resources = new ArrayList<>();
-        Iterable<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder()
-                .bucket(ProjectConstants.NAME_MAIN_BUCKET)
-                .prefix(path)
-                .delimiter("/")
-                .build());
-        for (Result<Item> result : results) {
+        for (Result<Item> result : minioService.getList(path)) {
             Item item = result.get();
 
             if (path.equals(item.objectName())) {
@@ -96,20 +87,9 @@ public class ResourceService {
     public void remove(String path) throws ServerException, InsufficientDataException, ErrorResponseException,
             IOException, NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException,
             InternalException {
-
-        Iterable<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder()
-                .bucket(ProjectConstants.NAME_MAIN_BUCKET)
-                .prefix(path)
-                .delimiter("/")
-                .build());
-
-        for (Result<Item> result : results) {
+        for (Result<Item> result : minioService.getList(path)) {
             Item item = result.get();
-
-            minioClient.removeObject(RemoveObjectArgs.builder()
-                    .bucket(ProjectConstants.NAME_MAIN_BUCKET)
-                    .object(item.objectName())
-                    .build());
+            minioService.remove(item.objectName());
         }
 
     }
@@ -137,13 +117,7 @@ public class ResourceService {
                 zipOutputStream.finish();
             }
         } else {
-            //todo filename какое давать?
-            minioClient.downloadObject(
-                    DownloadObjectArgs.builder()
-                            .bucket(ProjectConstants.NAME_MAIN_BUCKET)
-                            .object(path)
-                            .filename(ResourceUtils.getResourceName(path))
-                            .build());
+            minioService.download(path, ResourceUtils.getResourceName(path));
         }
     }
 
@@ -163,8 +137,7 @@ public class ResourceService {
             ErrorResponseException, IOException, NoSuchAlgorithmException, InvalidKeyException,
             InvalidResponseException, XmlParserException, InternalException {
 
-        StatObjectResponse stat = minioClient.statObject(StatObjectArgs.builder()
-                .bucket(ProjectConstants.NAME_MAIN_BUCKET).build());
+        StatObjectResponse stat = minioService.getStat(path);
         long resourceSize = stat.size();
 
         return ResourceDto.builder()
@@ -200,25 +173,11 @@ public class ResourceService {
             remove(from);
             return resourceDto;
         } else {
-            Iterable<Result<Item>> results = minioClient.listObjects(ListObjectsArgs.builder()
-                    .bucket(ProjectConstants.NAME_MAIN_BUCKET)
-                    .prefix(from)
-                    .delimiter("/")
-                    .build());
-
-            for (Result<Item> result : results) {
+            for (Result<Item> result : minioService.getList(from)) {
                 Item item = result.get();
 
                 if (from.equals(item.objectName())) {
-                    minioClient.copyObject(CopyObjectArgs.builder()
-                            .bucket(ProjectConstants.NAME_MAIN_BUCKET)
-                            .object(ResourceUtils.getNameUserFolder() + to)
-                            .source(
-                                    CopySource.builder()
-                                            .bucket(ProjectConstants.NAME_MAIN_BUCKET)
-                                            .object(from)
-                                            .build()
-                            ).build());
+                    minioService.copy(from, ResourceUtils.getNameUserFolder() + to);
 
                     remove(from);
                     resourceDto = ResourceDto.builder()
@@ -268,14 +227,7 @@ public class ResourceService {
         if (contentType == null) {
             contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
         }
-
-        minioClient.uploadObject(
-                UploadObjectArgs.builder()
-                        .bucket(ProjectConstants.NAME_MAIN_BUCKET)
-                        .object(path + file.getOriginalFilename())
-                        .filename(tempFile.getAbsolutePath())
-                        .contentType(contentType)
-                        .build());
+        minioService.upload(path + file.getOriginalFilename(), tempFile.getAbsolutePath(), contentType);
         tempFile.delete();
 
         return ResourceDto.builder()
