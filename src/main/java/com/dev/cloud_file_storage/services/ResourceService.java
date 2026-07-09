@@ -8,10 +8,16 @@ import io.minio.*;
 import io.minio.errors.*;
 import io.minio.messages.Item;
 import jakarta.servlet.http.HttpServletResponse;
+import org.jspecify.annotations.Nullable;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -22,9 +28,11 @@ import java.util.zip.ZipOutputStream;
 @Service
 public class ResourceService {
     private final MinioClient minioClient;
+    private final DirectoryService directoryService;
 
-    public ResourceService(MinioClient minioClient) {
+    public ResourceService(MinioClient minioClient, DirectoryService directoryService) {
         this.minioClient = minioClient;
+        this.directoryService = directoryService;
     }
 
     public ResourceDto getInfo(String path) throws ServerException, InsufficientDataException,
@@ -60,7 +68,7 @@ public class ResourceService {
         return resources;
     }
 
-    private List<String> getResourcesList(String path) throws ServerException, InsufficientDataException,
+    public List<String> getFullResourcesList(String path) throws ServerException, InsufficientDataException,
             ErrorResponseException, IOException, NoSuchAlgorithmException, InvalidKeyException,
             InvalidResponseException, XmlParserException, InternalException {
         List<String> resources = new ArrayList<>();
@@ -111,7 +119,7 @@ public class ResourceService {
             InvalidResponseException, XmlParserException, InternalException {
 
         if (isDirectory(path)) {
-            List<String> resources = getResourcesList(path);
+            List<String> resources = getFullResourcesList(path);
 
             try (OutputStream outputStream = response.getOutputStream();
                  ZipOutputStream zipOutputStream = new ZipOutputStream(outputStream)) {
@@ -165,5 +173,94 @@ public class ResourceService {
                 .size(resourceSize)
                 .type(ResourceType.FILE)
                 .build();
+    }
+
+    public ResourceDto move(String from, String to) throws ServerException, InsufficientDataException,
+            ErrorResponseException, IOException, NoSuchAlgorithmException, InvalidKeyException,
+            InvalidResponseException, XmlParserException, InternalException {
+
+        String oldParentPath = ResourceUtils.getParentPath(from);
+        String newParentPath = ResourceUtils.getParentPath(to);
+        String oldNameResource = ResourceUtils.getResourceName(from);
+        String newNameResource = ResourceUtils.getResourceName(to);
+        ResourceDto resourceDto;
+
+        if (!oldNameResource.equals(newNameResource)) {
+            to = ResourceUtils.deleteNameUserFolder(to);
+        }
+
+        if (isDirectory(from)) {
+            List<String> oldResources = getFullResourcesList(from);
+            resourceDto = directoryService.createFolder(to);
+
+            for (String oldResource : oldResources) {
+                String oldName = ResourceUtils.getResourceName(oldResource);
+                directoryService.createFolder(to + oldName + "/");
+            }
+            remove(from);
+            return resourceDto;
+        } else {
+
+            return new ResourceDto(); //todo заглушка
+        }
+    }
+
+    public List<ResourceDto> search(String query) throws ServerException, InsufficientDataException,
+            ErrorResponseException, IOException, NoSuchAlgorithmException, InvalidKeyException,
+            InvalidResponseException, XmlParserException, InternalException {
+
+        List<String> list = getFullResourcesList(ResourceUtils.getNameUserFolder());
+        List<ResourceDto> resourceDtos = new ArrayList<>();
+        for (String resource : list) {
+            if (ResourceUtils.getResourceName(resource).equals(query)) {
+                resourceDtos.add(getInfo(ResourceUtils.deleteNameUserFolder(resource)));
+            }
+        }
+        return resourceDtos;
+    }
+
+    public List<ResourceDto> upload(String path, List<MultipartFile> files) throws IOException, ServerException,
+            InsufficientDataException, ErrorResponseException, NoSuchAlgorithmException, InvalidKeyException,
+            InvalidResponseException, XmlParserException, InternalException {
+
+        if (files.isEmpty()) {
+            //todo выкинуть исключение не валидные данные, код 400
+            return List.of();
+        }
+
+        path = ResourceUtils.getPathToFolderUser(path);
+        File tempFile = null;
+        List<ResourceDto> resourceDtos = new ArrayList<>();
+
+        for (MultipartFile file : files) {
+            Path tempPath = Files.createTempFile("minio-", file.getOriginalFilename());
+            tempFile = tempPath.toFile();
+
+            file.transferTo(tempFile);
+
+            String contentType = file.getContentType();
+            if (contentType == null) {
+                contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
+            }
+
+            minioClient.uploadObject(
+                    UploadObjectArgs.builder()
+                            .bucket(ProjectConstants.NAME_MAIN_BUCKET)
+                            .object(path + file.getOriginalFilename())
+                            .filename(tempFile.getAbsolutePath())
+                            .contentType(contentType)
+                            .build());
+
+            resourceDtos.add(ResourceDto.builder()
+                    .path(path)
+                    .name(file.getOriginalFilename())
+                    .size(file.getSize())
+                    .type(ResourceType.FILE)
+                    .build());
+
+            tempFile.delete();
+        }
+
+        return resourceDtos;
     }
 }

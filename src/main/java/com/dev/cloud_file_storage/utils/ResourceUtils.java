@@ -34,14 +34,14 @@ public class ResourceUtils {
         } else {
             return ResourceDto.builder()
                     .path(getParentPath(item.objectName()))
-                    .name(getResourceName(item.objectName()) + "/")
+                    .name(getResourceName(item.objectName()))
                     .size(item.size())
                     .type(ResourceType.FILE)
                     .build();
         }
     }
 
-    public static String getNameUserFolder(String path) {
+    public static String getNameUserFolder() {
         PersonDetails personDetails = (PersonDetails) SecurityContextHolder.getContext()
                 .getAuthentication().getPrincipal();
         long userId = personDetails.getPerson().getId();
@@ -61,6 +61,6 @@ public class ResourceUtils {
     }
 
     public String getPathToFolderUser(String path) {
-        return getNameUserFolder(path) + path;
+        return getNameUserFolder() + path;
     }
 }
