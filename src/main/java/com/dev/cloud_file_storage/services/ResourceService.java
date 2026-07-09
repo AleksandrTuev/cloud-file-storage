@@ -1,14 +1,13 @@
 package com.dev.cloud_file_storage.services;
 
 import com.dev.cloud_file_storage.dto.ResourceDto;
-import com.dev.cloud_file_storage.enums.ResourceType;
-import com.dev.cloud_file_storage.utils.ProjectConstants;
 import com.dev.cloud_file_storage.utils.ResourceUtils;
-import io.minio.*;
+import io.minio.Result;
+import io.minio.StatObjectResponse;
 import io.minio.errors.*;
 import io.minio.messages.Item;
 import jakarta.servlet.http.HttpServletResponse;
-import org.jspecify.annotations.Nullable;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -26,8 +25,8 @@ import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
 @Service
+@RequiredArgsConstructor
 public class ResourceService {
-    private final MinioClient minioClient;
     private final DirectoryService directoryService;
     private final MinioService minioService;
 
@@ -126,11 +125,7 @@ public class ResourceService {
     }
 
     private ResourceDto getDirectoryInfo(String path) {
-        return ResourceDto.builder()
-                .path(ResourceUtils.getParentPath(path))
-                .name(ResourceUtils.getResourceName(path))
-                .type(ResourceType.DIRECTORY)
-                .build();
+        return ResourceUtils.getDirectoryDto(ResourceUtils.getParentPath(path), ResourceUtils.getResourceName(path));
     }
 
     private ResourceDto getFileInfo(String path) throws ServerException, InsufficientDataException,
@@ -140,12 +135,8 @@ public class ResourceService {
         StatObjectResponse stat = minioService.getStat(path);
         long resourceSize = stat.size();
 
-        return ResourceDto.builder()
-                .path(ResourceUtils.getParentPath(path))
-                .name(ResourceUtils.getResourceName(path))
-                .size(resourceSize)
-                .type(ResourceType.FILE)
-                .build();
+        return ResourceUtils.getFileDto(ResourceUtils.getParentPath(path), ResourceUtils.getResourceName(path),
+                resourceSize);
     }
 
     public ResourceDto move(String from, String to) throws ServerException, InsufficientDataException,
@@ -180,12 +171,7 @@ public class ResourceService {
                     minioService.copy(from, ResourceUtils.getNameUserFolder() + to);
 
                     remove(from);
-                    resourceDto = ResourceDto.builder()
-                            .path(newParentPath)
-                            .name(newNameResource)
-                            .size(item.size())
-                            .type(ResourceType.FILE)
-                            .build();
+                    resourceDto = ResourceUtils.getFileDto(newParentPath, newNameResource, item.size());
                 }
             }
 
@@ -217,9 +203,8 @@ public class ResourceService {
         }
 
         path = ResourceUtils.getPathToFolderUser(path);
-        File tempFile = null;
         Path tempPath = Files.createTempFile("minio-", ResourceUtils.getResourceName(file.getOriginalFilename()));
-        tempFile = tempPath.toFile();
+        File tempFile = tempPath.toFile();
 
         file.transferTo(tempFile);
 
@@ -230,11 +215,6 @@ public class ResourceService {
         minioService.upload(path + file.getOriginalFilename(), tempFile.getAbsolutePath(), contentType);
         tempFile.delete();
 
-        return ResourceDto.builder()
-                .path(path)
-                .name(file.getOriginalFilename())
-                .size(file.getSize())
-                .type(ResourceType.FILE)
-                .build();
+        return ResourceUtils.getFileDto(path, file.getOriginalFilename(), file.getSize());
     }
 }

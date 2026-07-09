@@ -3,7 +3,6 @@ package com.dev.cloud_file_storage.utils;
 import com.dev.cloud_file_storage.dto.ResourceDto;
 import com.dev.cloud_file_storage.enums.ResourceType;
 import com.dev.cloud_file_storage.security.PersonDetails;
-import io.minio.messages.Item;
 import lombok.experimental.UtilityClass;
 import org.springframework.security.core.context.SecurityContextHolder;
 
@@ -24,21 +23,21 @@ public class ResourceUtils {
         return path.lastIndexOf("/") == -1 ? path : path.substring(path.lastIndexOf("/") + 1);
     }
 
-    public static ResourceDto getResourceFromItem(Item item) {
-        if (item.isDir()) {
-            return ResourceDto.builder()
-                    .path(getParentPath(item.objectName()))
-                    .name(getResourceName(item.objectName()) + "/")
-                    .type(ResourceType.DIRECTORY)
-                    .build();
-        } else {
-            return ResourceDto.builder()
-                    .path(getParentPath(item.objectName()))
-                    .name(getResourceName(item.objectName()))
-                    .size(item.size())
-                    .type(ResourceType.FILE)
-                    .build();
-        }
+    public static ResourceDto getDirectoryDto(String path, String name) {
+        return ResourceDto.builder()
+                .path(path)
+                .name(name)
+                .type(ResourceType.DIRECTORY)
+                .build();
+    }
+
+    public static ResourceDto getFileDto(String path, String name, long size) {
+        return ResourceDto.builder()
+                .path(path)
+                .name(name)
+                .size(size)
+                .type(ResourceType.FILE)
+                .build();
     }
 
     public static String getNameUserFolder() {
@@ -51,7 +50,7 @@ public class ResourceUtils {
 
     public static String deleteNameUserFolder(String path) {
         int index = 0;
-        for (int i = 0; i < path.toCharArray().length; i++) {
+        for (int i = 0; i < path.length(); i++) {
             if (path.charAt(i) == '/') {
                 index = i + 1;
                 break;

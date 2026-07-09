@@ -1,6 +1,5 @@
 package com.dev.cloud_file_storage.controllers;
 
-import com.dev.cloud_file_storage.dto.ResourceDto;
 import com.dev.cloud_file_storage.services.ResourceService;
 import io.minio.errors.*;
 import jakarta.servlet.http.HttpServletResponse;
@@ -14,7 +13,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/resource")
@@ -31,18 +29,12 @@ public class ResourceController {
         return ResponseEntity.ok().body(resourceService.getInfo(path));
     }
 
-//    @PostMapping
     @PostMapping(consumes = { MediaType.MULTIPART_FORM_DATA_VALUE })
     public ResponseEntity<?> uploadResource(@RequestParam (name = "path", required = false) String path,
                                             @RequestParam("object") MultipartFile file) throws IOException,
             ServerException, InsufficientDataException, ErrorResponseException, NoSuchAlgorithmException,
             InvalidKeyException, InvalidResponseException, XmlParserException, InternalException {
-//        return ResponseEntity.ok().build();
-//        List<ResourceDto> list = resourceService.upload(path, file);
 
-//        if (list.isEmpty()) {
-//            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
-//        }
         return ResponseEntity.status(HttpStatus.CREATED).body(resourceService.upload(path, file));
     }
 

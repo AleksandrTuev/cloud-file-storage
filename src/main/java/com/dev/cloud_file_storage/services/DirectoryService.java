@@ -32,7 +32,14 @@ public class DirectoryService {
             if (parentPath.equals(item.objectName())) {
                 continue;
             }
-            list.add(ResourceUtils.getResourceFromItem(item));
+
+            if (item.isDir()) {
+                list.add(ResourceUtils.getDirectoryDto(ResourceUtils.getParentPath(item.objectName()),
+                        ResourceUtils.getResourceName(item.objectName() + "/")));
+            } else {
+                list.add(ResourceUtils.getFileDto(ResourceUtils.getParentPath(item.objectName()),
+                        ResourceUtils.getResourceName(item.objectName()), item.size()));
+            }
         }
         return list;
     }
@@ -46,10 +53,6 @@ public class DirectoryService {
         //todo validate когда добавляются папки с одним именем
         //todo validate папка и файл с одним именем могут находится
         //todo stream нужно закрывать для освобождения ресурсов
-        return ResourceDto.builder()
-                .path(ResourceUtils.getParentPath(path))
-                .name(ResourceUtils.getResourceName(path))
-                .type(ResourceType.DIRECTORY)
-                .build();
+        return ResourceUtils.getDirectoryDto(ResourceUtils.getParentPath(path), ResourceUtils.getResourceName(path));
     }
 }
