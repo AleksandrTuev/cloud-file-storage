@@ -34,16 +34,16 @@ public class ResourceController {
 //    @PostMapping
     @PostMapping(consumes = { MediaType.MULTIPART_FORM_DATA_VALUE })
     public ResponseEntity<?> uploadResource(@RequestParam (name = "path", required = false) String path,
-                                            @RequestParam("object") List<MultipartFile> files) throws IOException,
+                                            @RequestParam("object") MultipartFile file) throws IOException,
             ServerException, InsufficientDataException, ErrorResponseException, NoSuchAlgorithmException,
             InvalidKeyException, InvalidResponseException, XmlParserException, InternalException {
 //        return ResponseEntity.ok().build();
-        List<ResourceDto> list = resourceService.upload(path, files);
+//        List<ResourceDto> list = resourceService.upload(path, file);
 
 //        if (list.isEmpty()) {
 //            return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
 //        }
-        return ResponseEntity.status(HttpStatus.CREATED).body(list);
+        return ResponseEntity.status(HttpStatus.CREATED).body(resourceService.upload(path, file));
     }
 
     @GetMapping("/download")

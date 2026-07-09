@@ -219,48 +219,41 @@ public class ResourceService {
         return resourceDtos;
     }
 
-    public List<ResourceDto> upload(String path, List<MultipartFile> files) throws IOException, ServerException,
+    public ResourceDto upload(String path, MultipartFile file) throws IOException, ServerException,
             InsufficientDataException, ErrorResponseException, NoSuchAlgorithmException, InvalidKeyException,
             InvalidResponseException, XmlParserException, InternalException {
 
-        if (files.isEmpty()) {
+        if (file.isEmpty()) {
             //todo выкинуть исключение не валидные данные, код 400
-            return List.of();
+//            return List.of();
         }
 
         path = ResourceUtils.getPathToFolderUser(path);
         File tempFile = null;
-        List<ResourceDto> resourceDtos = new ArrayList<>();
+        Path tempPath = Files.createTempFile("minio-", ResourceUtils.getResourceName(file.getOriginalFilename()));
+        tempFile = tempPath.toFile();
 
-        for (MultipartFile file : files) {
-            Path tempPath = Files.createTempFile("minio-", file.getOriginalFilename());
-            tempFile = tempPath.toFile();
+        file.transferTo(tempFile);
 
-            file.transferTo(tempFile);
-
-            String contentType = file.getContentType();
-            if (contentType == null) {
-                contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
-            }
-
-            minioClient.uploadObject(
-                    UploadObjectArgs.builder()
-                            .bucket(ProjectConstants.NAME_MAIN_BUCKET)
-                            .object(path + file.getOriginalFilename())
-                            .filename(tempFile.getAbsolutePath())
-                            .contentType(contentType)
-                            .build());
-
-            resourceDtos.add(ResourceDto.builder()
-                    .path(path)
-                    .name(file.getOriginalFilename())
-                    .size(file.getSize())
-                    .type(ResourceType.FILE)
-                    .build());
-
-            tempFile.delete();
+        String contentType = file.getContentType();
+        if (contentType == null) {
+            contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
         }
 
-        return resourceDtos;
+        minioClient.uploadObject(
+                UploadObjectArgs.builder()
+                        .bucket(ProjectConstants.NAME_MAIN_BUCKET)
+                        .object(path + file.getOriginalFilename())
+                        .filename(tempFile.getAbsolutePath())
+                        .contentType(contentType)
+                        .build());
+        tempFile.delete();
+
+        return ResourceDto.builder()
+                .path(path)
+                .name(file.getOriginalFilename())
+                .size(file.getSize())
+                .type(ResourceType.FILE)
+                .build();
     }
 }
