@@ -1,6 +1,10 @@
 package com.dev.cloud_file_storage.services;
 
 import com.dev.cloud_file_storage.dto.ResourceDto;
+import com.dev.cloud_file_storage.exception.ResourceAlreadyExistsException;
+import com.dev.cloud_file_storage.exception.InvalidPathException;
+import com.dev.cloud_file_storage.exception.InvalidQueryException;
+import com.dev.cloud_file_storage.exception.ResourceNotFoundException;
 import com.dev.cloud_file_storage.utils.ResourceUtils;
 import io.minio.Result;
 import io.minio.StatObjectResponse;
@@ -33,13 +37,26 @@ public class ResourceService {
     public ResourceDto getInfo(String path) throws ServerException, InsufficientDataException,
             ErrorResponseException, IOException, NoSuchAlgorithmException, InvalidKeyException,
             InvalidResponseException, XmlParserException, InternalException {
+
+        ResourceDto resourceDto = null;
         path = ResourceUtils.getPathToFolderUser(path);
 
-        if (path.trim().endsWith("/")) {
-            return getDirectoryInfo(path);
-        } else {
-            return getFileInfo(path);
+        for (Result<Item> result : minioService.getList(path)) {
+            Item item = result.get();
+
+            if (path.equals(item.objectName())) {
+                if (item.objectName().endsWith("/")) {
+                    resourceDto = getDirectoryInfo(path);
+                } else {
+                    resourceDto = getFileInfo(path);
+                }
+            }
         }
+
+        if (resourceDto == null) {
+            throw new ResourceNotFoundException("Resource not found");
+        }
+        return resourceDto;
     }
 
     private List<String> getResources(String path) throws ServerException, InsufficientDataException,
@@ -86,6 +103,10 @@ public class ResourceService {
     public void remove(String path) throws ServerException, InsufficientDataException, ErrorResponseException,
             IOException, NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException,
             InternalException {
+
+        checkValidPath(path);
+        checkExists(path);
+
         for (Result<Item> result : minioService.getList(path)) {
             Item item = result.get();
             minioService.remove(item.objectName());
@@ -96,6 +117,9 @@ public class ResourceService {
     public void download(String path, HttpServletResponse response) throws ServerException, InsufficientDataException,
             ErrorResponseException, IOException, NoSuchAlgorithmException, InvalidKeyException,
             InvalidResponseException, XmlParserException, InternalException {
+
+        checkValidPath(path);
+        checkExists(path);
 
         if (isDirectory(path)) {
             List<String> resources = getFullResourcesList(path);
@@ -149,9 +173,15 @@ public class ResourceService {
         String newNameResource = ResourceUtils.getResourceName(to);
         ResourceDto resourceDto = new ResourceDto();
 
+        checkValidPath(from);
+        checkValidPath(to);
+        checkExists(from);
+
         if (!oldNameResource.equals(newNameResource)) {
             to = ResourceUtils.deleteNameUserFolder(to);
         }
+
+        checkDuplicate(to);
 
         if (isDirectory(from)) {
             List<String> oldResources = getFullResourcesList(from);
@@ -183,6 +213,9 @@ public class ResourceService {
             ErrorResponseException, IOException, NoSuchAlgorithmException, InvalidKeyException,
             InvalidResponseException, XmlParserException, InternalException {
 
+        if (query == null || query.isEmpty()) {
+            throw new InvalidQueryException("Query is null or empty");
+        }
         List<String> list = getFullResourcesList(ResourceUtils.getNameUserFolder());
         List<ResourceDto> resourceDtos = new ArrayList<>();
         for (String resource : list) {
@@ -197,12 +230,9 @@ public class ResourceService {
             InsufficientDataException, ErrorResponseException, NoSuchAlgorithmException, InvalidKeyException,
             InvalidResponseException, XmlParserException, InternalException {
 
-        if (file.isEmpty()) {
-            //todo выкинуть исключение не валидные данные, код 400
-//            return List.of();
-        }
-
         path = ResourceUtils.getPathToFolderUser(path);
+        checkDuplicate(path);
+
         Path tempPath = Files.createTempFile("minio-", ResourceUtils.getResourceName(file.getOriginalFilename()));
         File tempFile = tempPath.toFile();
 
@@ -216,5 +246,29 @@ public class ResourceService {
         tempFile.delete();
 
         return ResourceUtils.getFileDto(path, file.getOriginalFilename(), file.getSize());
+    }
+
+    private void checkValidPath(String path) {
+        if (path == null || path.isEmpty()) {
+            throw new InvalidPathException("Invalid path");
+        }
+    }
+
+    private void checkExists(String path) throws ServerException, InsufficientDataException, ErrorResponseException,
+            IOException, NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException,
+            InternalException {
+
+        if (!directoryService.isExists(path)) {
+            throw new ResourceNotFoundException("Resource not found");
+        }
+    }
+
+    private void checkDuplicate(String path) throws ServerException, InsufficientDataException, ErrorResponseException,
+            IOException, NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException,
+            InternalException {
+
+        if (directoryService.isExists(path)) {
+            throw new ResourceAlreadyExistsException("Resource already exists");
+        }
     }
 }

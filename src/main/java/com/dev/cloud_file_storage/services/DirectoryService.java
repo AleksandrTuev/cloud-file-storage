@@ -1,6 +1,8 @@
 package com.dev.cloud_file_storage.services;
 
 import com.dev.cloud_file_storage.dto.ResourceDto;
+import com.dev.cloud_file_storage.exception.ResourceAlreadyExistsException;
+import com.dev.cloud_file_storage.exception.ResourceNotFoundException;
 import com.dev.cloud_file_storage.utils.ResourceUtils;
 import io.minio.Result;
 import io.minio.errors.*;
@@ -26,7 +28,6 @@ public class DirectoryService {
         path = ResourceUtils.getPathToFolderUser(path);
         String parentPath = path;
         List<ResourceDto> list = new ArrayList<>();
-        //todo validate когда в адресной строке вводится несуществующая папка
         for (Result<Item> result : minioService.getList(path)) {
             Item item = result.get();
             if (parentPath.equals(item.objectName())) {
@@ -35,12 +36,17 @@ public class DirectoryService {
 
             if (item.isDir()) {
                 list.add(ResourceUtils.getDirectoryDto(ResourceUtils.getParentPath(item.objectName()),
-                        ResourceUtils.getResourceName(item.objectName() + "/")));
+                        ResourceUtils.getResourceName(item.objectName()) + "/"));
             } else {
                 list.add(ResourceUtils.getFileDto(ResourceUtils.getParentPath(item.objectName()),
                         ResourceUtils.getResourceName(item.objectName()), item.size()));
             }
         }
+
+        if (list.isEmpty()) {
+            throw new ResourceNotFoundException("Resource not exists");
+        }
+
         return list;
     }
 
@@ -49,10 +55,23 @@ public class DirectoryService {
             InvalidResponseException, XmlParserException, InternalException {
 
         path = ResourceUtils.getPathToFolderUser(path);
+        if (isExists(path)) {
+            throw new ResourceAlreadyExistsException("Folder already exists");
+        }
+
         minioService.putEmptyFolder(path);
-        //todo validate когда добавляются папки с одним именем
-        //todo validate папка и файл с одним именем могут находится
-        //todo stream нужно закрывать для освобождения ресурсов
         return ResourceUtils.getDirectoryDto(ResourceUtils.getParentPath(path), ResourceUtils.getResourceName(path));
+    }
+
+    public boolean isExists(String path) throws ServerException, InsufficientDataException, ErrorResponseException,
+            IOException, NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException,
+            InternalException {
+
+        for (Result<Item> result : minioService.getList(path)) {
+            if (result.get().objectName().equals(path)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

@@ -1,7 +1,7 @@
 package com.dev.cloud_file_storage.advice;
 
 import com.dev.cloud_file_storage.dto.ErrorResponse;
-import com.dev.cloud_file_storage.exception.UsernameAlreadyExsistException;
+import com.dev.cloud_file_storage.exception.*;
 import jakarta.validation.ConstraintViolationException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -16,9 +16,9 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 public class ExceptionApiHandler {
 
     //400 //validate
-    @ExceptionHandler(ConstraintViolationException.class)
+    @ExceptionHandler({ConstraintViolationException.class, InvalidQueryException.class, InvalidPathException.class})
     @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorResponse handleBadRequest(ConstraintViolationException e) {
+    public ErrorResponse handleBadRequest(Exception e) {
         log.error(e.getMessage(), e);
         return new ErrorResponse(e.getMessage());
     }
@@ -31,10 +31,18 @@ public class ExceptionApiHandler {
         return new ErrorResponse(e.getMessage());
     }
 
+    //404
+    @ExceptionHandler(ResourceNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ErrorResponse handleResourceNotFound(ResourceNotFoundException e) {
+        log.error(e.getMessage(), e);
+        return new ErrorResponse(e.getMessage());
+    }
+
     //409
-    @ExceptionHandler(UsernameAlreadyExsistException.class)
+    @ExceptionHandler({UsernameAlreadyExsistException.class, ResourceAlreadyExistsException.class})
     @ResponseStatus(HttpStatus.CONFLICT)
-    public ErrorResponse handleConflict(UsernameAlreadyExsistException e) {
+    public ErrorResponse handleConflict(Exception e) {
         log.error(e.getMessage(), e);
         return new ErrorResponse(e.getMessage());
     }
