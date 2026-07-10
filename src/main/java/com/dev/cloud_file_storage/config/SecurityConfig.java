@@ -53,7 +53,10 @@ public class SecurityConfig {
                                 "/login",
                                 "/help",
                                 "/registration",
-                                "/files/**"
+                                "/files/**",
+                                "/v3/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html"
                         ).permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/sign-in").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/auth/sign-up").permitAll()
