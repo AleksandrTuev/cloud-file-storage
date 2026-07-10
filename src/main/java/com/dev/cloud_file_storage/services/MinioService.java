@@ -89,11 +89,13 @@ public class MinioService {
             IOException, NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException,
             InternalException {
 
-        minioClient.putObject(PutObjectArgs
-                .builder()
-                .bucket(ProjectConstants.NAME_MAIN_BUCKET)
-                .object(path)
-                .stream(new ByteArrayInputStream(new byte[0]), 0, -1)
-                .build());
+        try (ByteArrayInputStream bais = new ByteArrayInputStream(new byte[0])){
+            minioClient.putObject(PutObjectArgs
+                    .builder()
+                    .bucket(ProjectConstants.NAME_MAIN_BUCKET)
+                    .object(path)
+                    .stream(bais, 0, -1)
+                    .build());
+        }
     }
 }

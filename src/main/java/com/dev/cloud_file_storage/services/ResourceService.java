@@ -120,7 +120,7 @@ public class ResourceService {
             to = ResourceUtils.deleteNameUserFolder(to);
         }
 
-        checkDuplicate(to);
+        checkDuplicate(newParentPath + newNameResource);
 
         if (isDirectory(from)) {
             List<String> oldResources = getFullResourcesList(from);
@@ -169,12 +169,12 @@ public class ResourceService {
             InvalidResponseException, XmlParserException, InternalException {
 
         path = ResourceUtils.getPathToFolderUser(path);
-        checkDuplicate(path);
 
         Path tempPath = Files.createTempFile("minio-", ResourceUtils.getResourceName(file.getOriginalFilename()));
         File tempFile = tempPath.toFile();
 
         file.transferTo(tempFile);
+        checkDuplicate(path + file.getOriginalFilename());
 
         String contentType = file.getContentType();
         if (contentType == null) {
