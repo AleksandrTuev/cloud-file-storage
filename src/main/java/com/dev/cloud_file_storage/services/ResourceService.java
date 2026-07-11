@@ -150,6 +150,7 @@ public class ResourceService {
     }
 
     public ResourceDto upload(String path, MultipartFile file) {
+        ResourceDto resourceDto = new ResourceDto();
         try {
             path = ResourceUtils.getPathToFolderUser(path);
 
@@ -157,18 +158,20 @@ public class ResourceService {
             File tempFile = tempPath.toFile();
 
             file.transferTo(tempFile);
-            checkDuplicate(path + file.getOriginalFilename());
+            String pathName = path + file.getOriginalFilename();
+            checkDuplicate(pathName);
 
             String contentType = file.getContentType();
             if (contentType == null) {
                 contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
             }
-            minioService.upload(path + file.getOriginalFilename(), tempFile.getAbsolutePath(), contentType);
+            minioService.upload(pathName, tempFile.getAbsolutePath(), contentType);
             tempFile.delete();
+            resourceDto = ResourceUtils.getFileDto(path, file.getOriginalFilename(), file.getSize());
         } catch (IOException e) {
             e.printStackTrace();
         }
-        return ResourceUtils.getFileDto(path, file.getOriginalFilename(), file.getSize());
+        return resourceDto;
     }
 
     private void checkValidPath(String path) {

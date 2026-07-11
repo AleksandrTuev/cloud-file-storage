@@ -59,9 +59,12 @@ public class DirectoryService {
 
     public boolean isExists(String path) {
 
-        for (Result<Item> result : minioService.getList(path)) {
+        for (Result<Item> result : minioService.getList(ResourceUtils.getParentPath(path))) {
             Item item = minioService.getItem(result);
-            if (item.objectName().equals(path)) {
+            String oldPath = item.objectName().toLowerCase();
+            String newPath = path.toLowerCase();
+
+            if (oldPath.equals(newPath)) {
                 return true;
             }
         }
