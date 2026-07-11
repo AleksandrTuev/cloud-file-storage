@@ -8,7 +8,6 @@ import com.dev.cloud_file_storage.exception.ResourceNotFoundException;
 import com.dev.cloud_file_storage.utils.ResourceUtils;
 import io.minio.Result;
 import io.minio.StatObjectResponse;
-import io.minio.errors.*;
 import io.minio.messages.Item;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -21,8 +20,6 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.ZipEntry;
@@ -34,15 +31,13 @@ public class ResourceService {
     private final DirectoryService directoryService;
     private final MinioService minioService;
 
-    public ResourceDto getInfo(String path) throws ServerException, InsufficientDataException,
-            ErrorResponseException, IOException, NoSuchAlgorithmException, InvalidKeyException,
-            InvalidResponseException, XmlParserException, InternalException {
+    public ResourceDto getInfo(String path) {
 
         ResourceDto resourceDto = null;
         path = ResourceUtils.getPathToFolderUser(path);
 
         for (Result<Item> result : minioService.getList(path)) {
-            Item item = result.get();
+            Item item = minioService.getItem(result);
 
             if (path.equals(item.objectName())) {
                 if (item.objectName().endsWith("/")) {
@@ -59,22 +54,18 @@ public class ResourceService {
         return resourceDto;
     }
 
-    public void remove(String path) throws ServerException, InsufficientDataException, ErrorResponseException,
-            IOException, NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException,
-            InternalException {
+    public void remove(String path) {
 
         checkValidPath(path);
         checkExists(path);
 
         for (Result<Item> result : minioService.getList(path)) {
-            Item item = result.get();
+            Item item = minioService.getItem(result);
             minioService.remove(item.objectName());
         }
     }
 
-    public void download(String path, HttpServletResponse response) throws ServerException, InsufficientDataException,
-            ErrorResponseException, IOException, NoSuchAlgorithmException, InvalidKeyException,
-            InvalidResponseException, XmlParserException, InternalException {
+    public void download(String path, HttpServletResponse response) {
 
         checkValidPath(path);
         checkExists(path);
@@ -85,26 +76,22 @@ public class ResourceService {
             try (OutputStream outputStream = response.getOutputStream();
                  ZipOutputStream zipOutputStream = new ZipOutputStream(outputStream)) {
 
-                resources.forEach(resource -> {
+                for (String resource : resources) {
                     ZipEntry zipEntry = new ZipEntry(ResourceUtils.deleteNameUserFolder(resource));
-                    try {
-                        zipOutputStream.putNextEntry(zipEntry);
-                        zipOutputStream.closeEntry();
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                });
+                    zipOutputStream.putNextEntry(zipEntry);
+                    zipOutputStream.closeEntry();
+                }
 
                 zipOutputStream.finish();
+            } catch (IOException e) {
+                e.printStackTrace();
             }
         } else {
             minioService.download(path, ResourceUtils.getResourceName(path));
         }
     }
 
-    public ResourceDto move(String from, String to) throws ServerException, InsufficientDataException,
-            ErrorResponseException, IOException, NoSuchAlgorithmException, InvalidKeyException,
-            InvalidResponseException, XmlParserException, InternalException {
+    public ResourceDto move(String from, String to) {
 
         String oldParentPath = ResourceUtils.getParentPath(from);
         String newParentPath = ResourceUtils.getParentPath(to);
@@ -134,7 +121,7 @@ public class ResourceService {
             return resourceDto;
         } else {
             for (Result<Item> result : minioService.getList(from)) {
-                Item item = result.get();
+                Item item = minioService.getItem(result);
 
                 if (from.equals(item.objectName())) {
                     minioService.copy(from, ResourceUtils.getNameUserFolder() + to);
@@ -147,9 +134,7 @@ public class ResourceService {
         }
     }
 
-    public List<ResourceDto> search(String query) throws ServerException, InsufficientDataException,
-            ErrorResponseException, IOException, NoSuchAlgorithmException, InvalidKeyException,
-            InvalidResponseException, XmlParserException, InternalException {
+    public List<ResourceDto> search(String query) {
 
         if (query == null || query.isEmpty()) {
             throw new InvalidQueryException("Query is null or empty");
@@ -164,24 +149,25 @@ public class ResourceService {
         return resourceDtos;
     }
 
-    public ResourceDto upload(String path, MultipartFile file) throws IOException, ServerException,
-            InsufficientDataException, ErrorResponseException, NoSuchAlgorithmException, InvalidKeyException,
-            InvalidResponseException, XmlParserException, InternalException {
+    public ResourceDto upload(String path, MultipartFile file) {
+        try {
+            path = ResourceUtils.getPathToFolderUser(path);
 
-        path = ResourceUtils.getPathToFolderUser(path);
+            Path tempPath = Files.createTempFile("minio-", ResourceUtils.getResourceName(file.getOriginalFilename()));
+            File tempFile = tempPath.toFile();
 
-        Path tempPath = Files.createTempFile("minio-", ResourceUtils.getResourceName(file.getOriginalFilename()));
-        File tempFile = tempPath.toFile();
+            file.transferTo(tempFile);
+            checkDuplicate(path + file.getOriginalFilename());
 
-        file.transferTo(tempFile);
-        checkDuplicate(path + file.getOriginalFilename());
-
-        String contentType = file.getContentType();
-        if (contentType == null) {
-            contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
+            String contentType = file.getContentType();
+            if (contentType == null) {
+                contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
+            }
+            minioService.upload(path + file.getOriginalFilename(), tempFile.getAbsolutePath(), contentType);
+            tempFile.delete();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        minioService.upload(path + file.getOriginalFilename(), tempFile.getAbsolutePath(), contentType);
-        tempFile.delete();
         return ResourceUtils.getFileDto(path, file.getOriginalFilename(), file.getSize());
     }
 
@@ -191,18 +177,14 @@ public class ResourceService {
         }
     }
 
-    private void checkExists(String path) throws ServerException, InsufficientDataException, ErrorResponseException,
-            IOException, NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException,
-            InternalException {
+    private void checkExists(String path) {
 
         if (!directoryService.isExists(path)) {
             throw new ResourceNotFoundException("Resource not found");
         }
     }
 
-    private void checkDuplicate(String path) throws ServerException, InsufficientDataException, ErrorResponseException,
-            IOException, NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException,
-            InternalException {
+    private void checkDuplicate(String path) {
 
         if (directoryService.isExists(path)) {
             throw new ResourceAlreadyExistsException("Resource already exists");
@@ -217,9 +199,7 @@ public class ResourceService {
         return ResourceUtils.getDirectoryDto(ResourceUtils.getParentPath(path), ResourceUtils.getResourceName(path));
     }
 
-    private ResourceDto getFileInfo(String path) throws ServerException, InsufficientDataException,
-            ErrorResponseException, IOException, NoSuchAlgorithmException, InvalidKeyException,
-            InvalidResponseException, XmlParserException, InternalException {
+    private ResourceDto getFileInfo(String path) {
 
         StatObjectResponse stat = minioService.getStat(path);
         long resourceSize = stat.size();
@@ -228,12 +208,10 @@ public class ResourceService {
                 resourceSize);
     }
 
-    private List<String> getResources(String path) throws ServerException, InsufficientDataException,
-            ErrorResponseException, IOException, NoSuchAlgorithmException, InvalidKeyException,
-            InvalidResponseException, XmlParserException, InternalException {
+    private List<String> getResources(String path) {
         List<String> resources = new ArrayList<>();
         for (Result<Item> result : minioService.getList(path)) {
-            Item item = result.get();
+            Item item = minioService.getItem(result);
 
             if (path.equals(item.objectName())) {
                 continue;
@@ -244,9 +222,7 @@ public class ResourceService {
         return resources;
     }
 
-    private List<String> getFullResourcesList(String path) throws ServerException, InsufficientDataException,
-            ErrorResponseException, IOException, NoSuchAlgorithmException, InvalidKeyException,
-            InvalidResponseException, XmlParserException, InternalException {
+    private List<String> getFullResourcesList(String path) {
         List<String> resources = new ArrayList<>();
         List<String> tempList = getResources(path);
         List<String> tempList2 = new ArrayList<>();

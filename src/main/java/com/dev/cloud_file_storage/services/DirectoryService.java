@@ -5,14 +5,10 @@ import com.dev.cloud_file_storage.exception.ResourceAlreadyExistsException;
 import com.dev.cloud_file_storage.exception.ResourceNotFoundException;
 import com.dev.cloud_file_storage.utils.ResourceUtils;
 import io.minio.Result;
-import io.minio.errors.*;
 import io.minio.messages.Item;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
-import java.io.IOException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -21,9 +17,7 @@ import java.util.List;
 public class DirectoryService {
     private final MinioService minioService;
 
-    public List<ResourceDto> getInfo(String path) throws ServerException, InsufficientDataException,
-            ErrorResponseException, IOException, NoSuchAlgorithmException, InvalidKeyException,
-            InvalidResponseException, XmlParserException, InternalException {
+    public List<ResourceDto> getInfo(String path) {
 
         path = ResourceUtils.getPathToFolderUser(path);
         String parentPath = path;
@@ -31,7 +25,7 @@ public class DirectoryService {
         boolean found = false;
 
         for (Result<Item> result : minioService.getList(path)) {
-            Item item = result.get();
+            Item item = minioService.getItem(result);
             if (parentPath.equals(item.objectName())) {
                 found = true;
                 continue;
@@ -52,9 +46,7 @@ public class DirectoryService {
         return list;
     }
 
-    public ResourceDto createFolder(String path) throws ServerException, InsufficientDataException,
-            ErrorResponseException, IOException, NoSuchAlgorithmException, InvalidKeyException,
-            InvalidResponseException, XmlParserException, InternalException {
+    public ResourceDto createFolder(String path) {
 
         path = ResourceUtils.getPathToFolderUser(path);
         if (isExists(path)) {
@@ -65,12 +57,11 @@ public class DirectoryService {
         return ResourceUtils.getDirectoryDto(ResourceUtils.getParentPath(path), ResourceUtils.getResourceName(path));
     }
 
-    public boolean isExists(String path) throws ServerException, InsufficientDataException, ErrorResponseException,
-            IOException, NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException,
-            InternalException {
+    public boolean isExists(String path) {
 
         for (Result<Item> result : minioService.getList(path)) {
-            if (result.get().objectName().equals(path)) {
+            Item item = minioService.getItem(result);
+            if (item.objectName().equals(path)) {
                 return true;
             }
         }

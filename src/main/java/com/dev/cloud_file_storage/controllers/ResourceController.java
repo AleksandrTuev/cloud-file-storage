@@ -1,7 +1,6 @@
 package com.dev.cloud_file_storage.controllers;
 
 import com.dev.cloud_file_storage.services.ResourceService;
-import io.minio.errors.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -12,10 +11,6 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import java.io.IOException;
-import java.security.InvalidKeyException;
-import java.security.NoSuchAlgorithmException;
 
 @RestController
 @RequestMapping("/api/resource")
@@ -30,10 +25,7 @@ public class ResourceController {
     @ApiResponse(responseCode = "400", description = "invalid path")
     @ApiResponse(responseCode = "404", description = "resource not found")
     @ApiResponse(responseCode = "500", description = "unknown error")
-    public ResponseEntity<?> getResource(@RequestParam (name = "path", required = false) String path)
-            throws ServerException, InsufficientDataException, ErrorResponseException, IOException,
-            NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException,
-            InternalException {
+    public ResponseEntity<?> getResource(@RequestParam (name = "path", required = false) String path) {
 
         return ResponseEntity.ok().body(resourceService.getInfo(path));
     }
@@ -44,9 +36,7 @@ public class ResourceController {
     @ApiResponse(responseCode = "409", description = "resource already exists")
     @ApiResponse(responseCode = "500", description = "unknown error")
     public ResponseEntity<?> uploadResource(@RequestParam (name = "path", required = false) String path,
-                                            @RequestParam("object") MultipartFile file) throws IOException,
-            ServerException, InsufficientDataException, ErrorResponseException, NoSuchAlgorithmException,
-            InvalidKeyException, InvalidResponseException, XmlParserException, InternalException {
+                                            @RequestParam("object") MultipartFile file) {
 
         return ResponseEntity.status(HttpStatus.CREATED).body(resourceService.upload(path, file));
     }
@@ -58,10 +48,7 @@ public class ResourceController {
     @ApiResponse(responseCode = "404", description = "resource not found")
     @ApiResponse(responseCode = "500", description = "unknown error")
     public ResponseEntity<?> downloadResource(@RequestParam (name = "path", required = false) String path,
-                                              HttpServletResponse response)
-            throws ServerException, InsufficientDataException, ErrorResponseException, IOException,
-            NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException,
-            InternalException {
+                                              HttpServletResponse response) {
 
         resourceService.download(path, response);
         return ResponseEntity.ok().contentType(MediaType.APPLICATION_OCTET_STREAM).build();
@@ -73,10 +60,7 @@ public class ResourceController {
     @ApiResponse(responseCode = "400", description = "invalid path")
     @ApiResponse(responseCode = "404", description = "resource not found")
     @ApiResponse(responseCode = "500", description = "unknown error")
-    public ResponseEntity<?> removeResource(@RequestParam (name = "path", required = false) String path)
-            throws ServerException, InsufficientDataException, ErrorResponseException, IOException,
-            NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException,
-            InternalException {
+    public ResponseEntity<?> removeResource(@RequestParam (name = "path", required = false) String path) {
 
             resourceService.remove(path);
         return ResponseEntity.noContent().build();
@@ -89,10 +73,7 @@ public class ResourceController {
     @ApiResponse(responseCode = "409", description = "resource already exists")
     @ApiResponse(responseCode = "500", description = "unknown error")
     public ResponseEntity<?> moveResource(@RequestParam (name = "from", required = false) String from,
-                                          @RequestParam (name = "to", required = false) String to)
-            throws ServerException, InsufficientDataException, ErrorResponseException, IOException,
-            NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException,
-            InternalException {
+                                          @RequestParam (name = "to", required = false) String to) {
 
         return ResponseEntity.ok().body(resourceService.move(from, to));
     }
@@ -101,10 +82,7 @@ public class ResourceController {
     @Operation(summary = "resource search")
     @ApiResponse(responseCode = "400", description = "invalid query")
     @ApiResponse(responseCode = "500", description = "unknown error")
-    public ResponseEntity<?> searchResource(@RequestParam (name = "query", required = false) String query)
-            throws ServerException, InsufficientDataException, ErrorResponseException, IOException,
-            NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException,
-            InternalException {
+    public ResponseEntity<?> searchResource(@RequestParam (name = "query", required = false) String query) {
 
         return ResponseEntity.ok().body(resourceService.search(query));
     }

@@ -1,5 +1,6 @@
 package com.dev.cloud_file_storage.services;
 
+import com.dev.cloud_file_storage.exception.MinioException;
 import com.dev.cloud_file_storage.utils.ProjectConstants;
 import io.minio.*;
 import io.minio.errors.*;
@@ -16,6 +17,7 @@ import java.security.NoSuchAlgorithmException;
 @RequiredArgsConstructor
 public class MinioService {
     private final MinioClient minioClient;
+    private final String message = "Minio exception";
 
     public Iterable<Result<Item>> getList(String path) {
         return minioClient.listObjects(ListObjectsArgs.builder()
@@ -25,77 +27,103 @@ public class MinioService {
                 .build());
     }
 
-    public void upload(String path, String absolutePath, String contentType) throws IOException,
-            ServerException, InsufficientDataException, ErrorResponseException, NoSuchAlgorithmException,
-            InvalidKeyException, InvalidResponseException, XmlParserException, InternalException {
-
-        minioClient.uploadObject(
-                UploadObjectArgs.builder()
-                        .bucket(ProjectConstants.NAME_MAIN_BUCKET)
-                        .object(path)
-                        .filename(absolutePath)
-                        .contentType(contentType)
-                        .build());
+    public void upload(String path, String absolutePath, String contentType) {
+        try {
+            minioClient.uploadObject(
+                    UploadObjectArgs.builder()
+                            .bucket(ProjectConstants.NAME_MAIN_BUCKET)
+                            .object(path)
+                            .filename(absolutePath)
+                            .contentType(contentType)
+                            .build());
+        } catch (ServerException | InsufficientDataException | ErrorResponseException | IOException
+                 | NoSuchAlgorithmException | InvalidKeyException | InvalidResponseException | XmlParserException
+                 | InternalException e) {
+            throw new MinioException(message, e);
+        }
     }
 
-    public void copy(String from, String to) throws ServerException, InsufficientDataException,
-            ErrorResponseException, IOException, NoSuchAlgorithmException, InvalidKeyException,
-            InvalidResponseException, XmlParserException, InternalException {
-
-        minioClient.copyObject(CopyObjectArgs.builder()
-                .bucket(ProjectConstants.NAME_MAIN_BUCKET)
-                .object(to)
-                .source(
-                        CopySource.builder()
-                                .bucket(ProjectConstants.NAME_MAIN_BUCKET)
-                                .object(from)
-                                .build()
-                ).build());
+    public void copy(String from, String to) {
+        try {
+            minioClient.copyObject(CopyObjectArgs.builder()
+                    .bucket(ProjectConstants.NAME_MAIN_BUCKET)
+                    .object(to)
+                    .source(
+                            CopySource.builder()
+                                    .bucket(ProjectConstants.NAME_MAIN_BUCKET)
+                                    .object(from)
+                                    .build()
+                    ).build());
+        } catch (ServerException | InsufficientDataException | ErrorResponseException | IOException
+                 | NoSuchAlgorithmException | InvalidKeyException | InvalidResponseException | XmlParserException
+                 | InternalException e) {
+            throw new MinioException(message, e);
+        }
     }
 
-    public StatObjectResponse getStat(String path) throws ServerException, InsufficientDataException,
-            ErrorResponseException, IOException, NoSuchAlgorithmException, InvalidKeyException,
-            InvalidResponseException, XmlParserException, InternalException {
-
-        return minioClient.statObject(StatObjectArgs.builder()
-                .bucket(ProjectConstants.NAME_MAIN_BUCKET)
-                .object(path)
-                .build());
+    public StatObjectResponse getStat(String path) {
+        try {
+            return minioClient.statObject(StatObjectArgs.builder()
+                    .bucket(ProjectConstants.NAME_MAIN_BUCKET)
+                    .object(path)
+                    .build());
+        } catch (ServerException | InsufficientDataException | ErrorResponseException | IOException
+                 | NoSuchAlgorithmException | InvalidKeyException | InvalidResponseException | XmlParserException
+                 | InternalException e) {
+            throw new MinioException(message, e);
+        }
     }
 
-    public void download(String path, String absolutPath) throws ServerException, InsufficientDataException,
-            ErrorResponseException, IOException, NoSuchAlgorithmException, InvalidKeyException,
-            InvalidResponseException, XmlParserException, InternalException {
-
-        minioClient.downloadObject(
-                DownloadObjectArgs.builder()
-                        .bucket(ProjectConstants.NAME_MAIN_BUCKET)
-                        .object(path)
-                        .filename(absolutPath)
-                        .build());
+    public void download(String path, String absolutPath) {
+        try {
+            minioClient.downloadObject(
+                    DownloadObjectArgs.builder()
+                            .bucket(ProjectConstants.NAME_MAIN_BUCKET)
+                            .object(path)
+                            .filename(absolutPath)
+                            .build());
+        } catch (ServerException | InsufficientDataException | ErrorResponseException | IOException
+                 | NoSuchAlgorithmException | InvalidKeyException | InvalidResponseException | XmlParserException
+                 | InternalException e) {
+            throw new MinioException(message, e);
+        }
     }
 
-    public void remove(String path) throws ServerException, InsufficientDataException, ErrorResponseException,
-            IOException, NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException,
-            InternalException {
-
-        minioClient.removeObject(RemoveObjectArgs.builder()
-                .bucket(ProjectConstants.NAME_MAIN_BUCKET)
-                .object(path)
-                .build());
+    public void remove(String path) {
+        try {
+            minioClient.removeObject(RemoveObjectArgs.builder()
+                    .bucket(ProjectConstants.NAME_MAIN_BUCKET)
+                    .object(path)
+                    .build());
+        } catch (ServerException | InsufficientDataException | ErrorResponseException | IOException
+                 | NoSuchAlgorithmException | InvalidKeyException | InvalidResponseException | XmlParserException
+                 | InternalException e) {
+            throw new MinioException(message, e);
+        }
     }
 
-    public void putEmptyFolder(String path) throws ServerException, InsufficientDataException, ErrorResponseException,
-            IOException, NoSuchAlgorithmException, InvalidKeyException, InvalidResponseException, XmlParserException,
-            InternalException {
-
-        try (ByteArrayInputStream bais = new ByteArrayInputStream(new byte[0])){
+    public void putEmptyFolder(String path) {
+        try (ByteArrayInputStream bais = new ByteArrayInputStream(new byte[0])) {
             minioClient.putObject(PutObjectArgs
                     .builder()
                     .bucket(ProjectConstants.NAME_MAIN_BUCKET)
                     .object(path)
                     .stream(bais, 0, -1)
                     .build());
+        } catch (ServerException | InsufficientDataException | ErrorResponseException | IOException
+                 | NoSuchAlgorithmException | InvalidKeyException | InvalidResponseException | XmlParserException
+                 | InternalException e) {
+            throw new MinioException(message, e);
+        }
+    }
+
+    public Item getItem(Result<Item> result) {
+        try {
+            return result.get();
+        } catch (ServerException | InsufficientDataException | ErrorResponseException | IOException
+                 | NoSuchAlgorithmException | InvalidKeyException | InvalidResponseException | XmlParserException
+                 | InternalException e) {
+            throw new MinioException(message, e);
         }
     }
 }
