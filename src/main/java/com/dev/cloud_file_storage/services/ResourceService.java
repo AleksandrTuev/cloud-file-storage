@@ -1,10 +1,7 @@
 package com.dev.cloud_file_storage.services;
 
 import com.dev.cloud_file_storage.dto.ResourceDto;
-import com.dev.cloud_file_storage.exception.InvalidPathException;
-import com.dev.cloud_file_storage.exception.InvalidQueryException;
-import com.dev.cloud_file_storage.exception.ResourceAlreadyExistsException;
-import com.dev.cloud_file_storage.exception.ResourceNotFoundException;
+import com.dev.cloud_file_storage.exception.*;
 import com.dev.cloud_file_storage.utils.ResourceUtils;
 import io.minio.Result;
 import io.minio.StatObjectResponse;
@@ -70,6 +67,10 @@ public class ResourceService {
         checkValidPath(path);
         checkExists(path);
 
+        response.setContentType("application/octet-stream");
+        response.setHeader("Content-Disposition",
+                "attachment; filename=\"" + ResourceUtils.getResourceName(path) + "\"");
+
         if (isDirectory(path)) {
             List<String> resources = getFullResourcesList(path);
 
@@ -79,21 +80,24 @@ public class ResourceService {
                 for (String resource : resources) {
                     ZipEntry zipEntry = new ZipEntry(ResourceUtils.deleteNameUserFolder(resource));
                     zipOutputStream.putNextEntry(zipEntry);
+                    minioService.download(resource, zipOutputStream);
+
                     zipOutputStream.closeEntry();
                 }
-
-                zipOutputStream.finish();
             } catch (IOException e) {
-                e.printStackTrace();
+                throw new FileDownloadException("Error download");
             }
         } else {
-            minioService.download(path, ResourceUtils.getResourceName(path));
+            try (OutputStream outputStream = response.getOutputStream()){
+                minioService.download(path, outputStream);
+            } catch (IOException e) {
+                throw new FileDownloadException("Error download");
+            }
         }
     }
 
     public ResourceDto move(String from, String to) {
 
-        String oldParentPath = ResourceUtils.getParentPath(from);
         String newParentPath = ResourceUtils.getParentPath(to);
         String oldNameResource = ResourceUtils.getResourceName(from);
         String newNameResource = ResourceUtils.getResourceName(to);

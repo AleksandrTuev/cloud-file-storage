@@ -10,6 +10,8 @@ import org.springframework.stereotype.Service;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 
@@ -74,13 +76,23 @@ public class MinioService {
         }
     }
 
-    public void download(String path, String absolutPath) {
+    public void download(String path, OutputStream outputStream) throws IOException {
+        try (InputStream inputStream = downloadStream(path)) {
+            byte[] buffer = new byte[8192];
+            int bytesRead;
+            while ((bytesRead = inputStream.read(buffer)) != -1) {
+                outputStream.write(buffer, 0, bytesRead);
+            }
+            outputStream.flush();
+        }
+    }
+
+    private InputStream downloadStream(String path) {
         try {
-            minioClient.downloadObject(
-                    DownloadObjectArgs.builder()
+            return minioClient.getObject(
+                    GetObjectArgs.builder()
                             .bucket(ProjectConstants.NAME_MAIN_BUCKET)
                             .object(path)
-                            .filename(absolutPath)
                             .build());
         } catch (ServerException | InsufficientDataException | ErrorResponseException | IOException
                  | NoSuchAlgorithmException | InvalidKeyException | InvalidResponseException | XmlParserException
