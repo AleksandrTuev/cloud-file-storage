@@ -154,7 +154,7 @@ public class ResourceService {
     }
 
     public ResourceDto upload(String path, MultipartFile file) {
-        ResourceDto resourceDto = new ResourceDto();
+        ResourceDto resourceDto;
         try {
             path = ResourceUtils.getPathToFolderUser(path);
 
@@ -173,7 +173,7 @@ public class ResourceService {
             tempFile.delete();
             resourceDto = ResourceUtils.getFileDto(path, file.getOriginalFilename(), file.getSize());
         } catch (IOException e) {
-            e.printStackTrace();
+            throw new FileUploadException("Error upload");
         }
         return resourceDto;
     }
