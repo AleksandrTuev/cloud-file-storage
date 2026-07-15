@@ -56,10 +56,11 @@ public class ResourceService {
         checkValidPath(path);
         checkExists(path);
 
-        for (Result<Item> result : minioService.getList(path)) {
-            Item item = minioService.getItem(result);
-            minioService.remove(item.objectName());
+        List<String> resources = getFullResourcesList(path);
+        for (String resource : resources) {
+            minioService.remove(resource);
         }
+        minioService.remove(path);
     }
 
     public void download(String path, HttpServletResponse response) {
