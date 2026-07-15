@@ -119,8 +119,12 @@ public class ResourceService {
             resourceDto = directoryService.createFolder(to);
 
             for (String oldResource : oldResources) {
-                String oldName = ResourceUtils.getResourceName(oldResource);
-                directoryService.createFolder(to + oldName + "/");
+                String newPath = oldResource.replaceFirst(from, ResourceUtils.getPathToFolderUser(to));
+                if (oldResource.endsWith("/")) {
+                    directoryService.createFolder(ResourceUtils.deleteNameUserFolder(newPath) + "/");
+                } else {
+                    directoryService.createFolder(ResourceUtils.deleteNameUserFolder(newPath));
+                }
             }
             remove(from);
             return resourceDto;
@@ -154,29 +158,34 @@ public class ResourceService {
         return resourceDtos;
     }
 
-    public ResourceDto upload(String path, MultipartFile file) {
+    public List<ResourceDto> upload(String path, List<MultipartFile> files) {
         ResourceDto resourceDto;
-        try {
-            path = ResourceUtils.getPathToFolderUser(path);
+        List<ResourceDto> list = new ArrayList<>();
+        for (MultipartFile file : files) {
+            try {
+                path = ResourceUtils.getPathToFolderUser(path);
 
-            Path tempPath = Files.createTempFile("minio-", ResourceUtils.getResourceName(file.getOriginalFilename()));
-            File tempFile = tempPath.toFile();
+                Path tempPath = Files.createTempFile("minio-", ResourceUtils.getResourceName(file.getOriginalFilename()));
+                File tempFile = tempPath.toFile();
 
-            file.transferTo(tempFile);
-            String pathName = path + file.getOriginalFilename();
-            checkDuplicate(pathName);
+                file.transferTo(tempFile);
+                String pathName = path + file.getOriginalFilename();
+                checkDuplicate(pathName);
 
-            String contentType = file.getContentType();
-            if (contentType == null) {
-                contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
+                String contentType = file.getContentType();
+                if (contentType == null) {
+                    contentType = MediaType.APPLICATION_OCTET_STREAM_VALUE;
+                }
+                minioService.upload(pathName, tempFile.getAbsolutePath(), contentType);
+                tempFile.delete();
+                resourceDto = ResourceUtils.getFileDto(path, file.getOriginalFilename(), file.getSize());
+                list.add(resourceDto);
+                path = ResourceUtils.deleteNameUserFolder(path);
+            } catch (IOException e) {
+                throw new FileUploadException("Error upload");
             }
-            minioService.upload(pathName, tempFile.getAbsolutePath(), contentType);
-            tempFile.delete();
-            resourceDto = ResourceUtils.getFileDto(path, file.getOriginalFilename(), file.getSize());
-        } catch (IOException e) {
-            throw new FileUploadException("Error upload");
         }
-        return resourceDto;
+        return list;
     }
 
     private void checkValidPath(String path) {

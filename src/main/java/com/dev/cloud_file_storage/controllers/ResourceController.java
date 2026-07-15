@@ -12,6 +12,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
+
 @RestController
 @RequestMapping("/api/resource")
 @RequiredArgsConstructor
@@ -36,9 +38,9 @@ public class ResourceController {
     @ApiResponse(responseCode = "409", description = "resource already exists")
     @ApiResponse(responseCode = "500", description = "unknown error")
     public ResponseEntity<?> uploadResource(@RequestParam (name = "path", required = false) String path,
-                                            @RequestParam("object") MultipartFile file) {
+                                            @RequestParam("object") List<MultipartFile> files) {
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(resourceService.upload(path, file));
+        return ResponseEntity.status(HttpStatus.CREATED).body(resourceService.upload(path, files));
     }
 
     @GetMapping("/download")

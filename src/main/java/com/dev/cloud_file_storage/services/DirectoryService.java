@@ -20,8 +20,8 @@ public class DirectoryService {
     public List<ResourceDto> getInfo(String path) {
 
         if (path.isEmpty()) {
-            if (!isExists(path)) {
-                createFolder(path);
+            if (!isExists(ResourceUtils.getNameUserFolder())) {
+                create(ResourceUtils.getNameUserFolder());
             }
         }
 
@@ -59,8 +59,12 @@ public class DirectoryService {
             throw new ResourceAlreadyExistsException("Folder already exists");
         }
 
-        minioService.putEmptyFolder(path);
+        create(path);
         return ResourceUtils.getDirectoryDto(ResourceUtils.getParentPath(path), ResourceUtils.getResourceName(path));
+    }
+
+    private void create(String path) {
+        minioService.putEmptyFolder(path);
     }
 
     public boolean isExists(String path) {
