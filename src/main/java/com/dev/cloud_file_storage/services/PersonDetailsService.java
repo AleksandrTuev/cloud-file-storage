@@ -11,7 +11,7 @@ import org.springframework.stereotype.Service;
 
 @Service
 @RequiredArgsConstructor
-public class PersonDetailsService implements UserDetailsService { //этот Сервис специально для Spring Security
+public class PersonDetailsService implements UserDetailsService {
     private final PeopleRepository peopleRepository;
 
     @Override

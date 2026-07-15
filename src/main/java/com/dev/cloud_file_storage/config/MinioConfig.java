@@ -5,7 +5,7 @@ import io.minio.BucketExistsArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
 import io.minio.errors.*;
-import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -15,15 +15,21 @@ import java.security.NoSuchAlgorithmException;
 
 @Configuration
 public class MinioConfig {
+    @Value("${minio.url}")
+    private String url;
+    @Value("${minio.root.login}")
+    private String login;
+    @Value("${minio.root.password}")
+    private String password;
+    @Value("${minio.bucket.name}")
+    private String bucketName;
 
     @Bean
     public MinioClient minioClient() {
         MinioClient minioClient = MinioClient.builder()
-                .endpoint("http://localhost:9000")
-                .credentials("minioadmin", "minioadmin")
+                .endpoint(url)
+                .credentials(login, password)
                 .build();
-
-        String bucketName = "user-files";
 
         try {
             boolean found = minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucketName).build());
@@ -34,7 +40,7 @@ public class MinioConfig {
         } catch (ServerException | InsufficientDataException | ErrorResponseException | IOException |
                  NoSuchAlgorithmException | InvalidKeyException | InvalidResponseException | XmlParserException |
                  InternalException e) {
-            throw new InitBucketException("failed to initialize main bucket", e);
+            throw new InitBucketException("Failed to initialize main bucket", e);
         }
 
         return minioClient;
