@@ -19,6 +19,12 @@ public class DirectoryService {
 
     public List<ResourceDto> getInfo(String path) {
 
+        if (path.isEmpty()) {
+            if (!isExists(path)) {
+                createFolder(path);
+            }
+        }
+
         path = ResourceUtils.getPathToFolderUser(path);
         String parentPath = path;
         List<ResourceDto> list = new ArrayList<>();
