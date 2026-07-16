@@ -45,14 +45,4 @@ public class MinioConfig {
 
         return minioClient;
     }
-
-//    @Bean
-//    public MinioClient minioClient() throws MinioException {
-//        return MinioClient.builder()
-//                .endpoint("https://localhost:9000")
-////                .endpoint("http://127.0.0.1:9000")
-//                .credentials("minioadmin", "minioadmin")
-//                .build()
-//                .makeBucket(MakeBucketArgs.builder().bucket("my-bucket").build());
-//    }
 }

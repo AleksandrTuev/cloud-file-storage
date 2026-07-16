@@ -4,7 +4,7 @@ services:
     image: cloud_file_storage_image
     container_name: cloud_file_storage
     env_file:
-      - .env.prod
+      - .env
     ports:
       - "8080:8080"
     depends_on:
