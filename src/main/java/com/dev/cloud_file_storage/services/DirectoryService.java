@@ -1,6 +1,7 @@
 package com.dev.cloud_file_storage.services;
 
 import com.dev.cloud_file_storage.dto.ResourceDto;
+import com.dev.cloud_file_storage.exception.InvalidPathException;
 import com.dev.cloud_file_storage.exception.ResourceAlreadyExistsException;
 import com.dev.cloud_file_storage.exception.ResourceNotFoundException;
 import com.dev.cloud_file_storage.utils.ResourceUtils;
@@ -19,25 +20,29 @@ public class DirectoryService {
 
     public List<ResourceDto> getInfo(String path) {
 
-        if (path.isEmpty()) {
+        if (path == null) {
+            throw new InvalidPathException("Invalid path");
+        }
+
+        if ((path.equals("/")) || (path.isBlank()) ){
+            path = "";
             if (!isExists(ResourceUtils.getNameUserFolder())) {
                 create(ResourceUtils.getNameUserFolder());
             }
         }
 
         path = ResourceUtils.getPathToFolderUser(path);
-        String parentPath = path;
         List<ResourceDto> list = new ArrayList<>();
         boolean found = false;
 
         for (Result<Item> result : minioService.getList(path)) {
             Item item = minioService.getItem(result);
-            if (parentPath.equals(item.objectName())) {
+            if (path.equals(item.objectName())) {
                 found = true;
                 continue;
             }
 
-            if (item.isDir()) {
+            if (item.objectName().endsWith("/")) {
                 list.add(ResourceUtils.getDirectoryDto(ResourceUtils.getParentPath(item.objectName()),
                         ResourceUtils.getResourceName(item.objectName()) + "/"));
             } else {
