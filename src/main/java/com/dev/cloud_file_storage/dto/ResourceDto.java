@@ -15,6 +15,6 @@ import lombok.NoArgsConstructor;
 public class ResourceDto {
     private String path;
     private String name;
-    private long size;
+    private Long size;
     private ResourceType type;
 }
