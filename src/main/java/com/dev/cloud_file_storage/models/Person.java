@@ -18,18 +18,17 @@ public class Person implements Serializable {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private long id;
 
-    @Column (name = "login")
     @NotEmpty(message = "Name should not be empty")
     @Size(min = 5, max = 20)
     @Pattern(regexp = "^[a-zA-Z0-9]+[a-zA-Z_0-9]*[a-zA-Z0-9]+$")
-    private String name;
+    private String username;
 
     @NotEmpty(message = "Password should not be empty")
     @Pattern(regexp = "^[a-zA-Z0-9!@#$%^&*(),.?\":{}|<>\\\\\\[\\]/`~+=\\-_';]*$")
     private String password;
 
-    public Person(String name, String password) {
-        this.name = name;
+    public Person(String username, String password) {
+        this.username = username;
         this.password = password;
     }
     //todo зачем использовать "public class Person implements Serializable"

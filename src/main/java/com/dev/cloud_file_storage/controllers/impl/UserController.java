@@ -1,4 +1,4 @@
-package com.dev.cloud_file_storage.controllers;
+package com.dev.cloud_file_storage.controllers.impl;
 
 import com.dev.cloud_file_storage.dto.PersonResponseDto;
 import org.springframework.http.ResponseEntity;

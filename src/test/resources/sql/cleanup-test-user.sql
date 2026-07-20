@@ -1,2 +1,2 @@
-DELETE FROM users WHERE login = 'Vladimir';
-DELETE FROM users WHERE login = 'Vl';
+DELETE FROM users WHERE username = 'Vladimir';
+DELETE FROM users WHERE username = 'Vl';

@@ -20,7 +20,7 @@ databaseChangeLog:
                     primaryKeyName: pk_users
                     nullable: false
               - column:
-                  name: login
+                  name: username
                   type: varchar(64)
                   constraints:
                     nullable: false
